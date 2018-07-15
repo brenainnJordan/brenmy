@@ -5,18 +5,14 @@ Created on 14 Jul 2018
 
 from maya import cmds
 
-
-https://help.autodesk.com/view/MAYAUL/2017/ENU/?guid=__py_ref_scripted_2py_foot_print_node_8py_example_html
-
-
 cmds.delete(test)
 
 cmds.flushUndo()
-cmds.unloadPlugin("customLocator_001.py")
+cmds.unloadPlugin("coneReaderLocator.py")
 
-cmds.loadPlugin(r"E:\dev\python\maya_sandbox\src\testing\plugins\customLocator_001.py")
+cmds.loadPlugin(r"coneReaderLocator.py")
 
-test = cmds.createNode("customLocator")
+test = cmds.createNode("coneReaderLocator")
 
 
 '''
@@ -33,18 +29,24 @@ def maya_useNewAPI():
     pass
 
 
-class CustomLocator(OpenMayaUI.MPxLocatorNode):
-    name = "customLocator"
-    id = OpenMaya.MTypeId(0x80007)
-    drawDbClassification = "drawdb/geometry/CustomLocator"
-    drawRegistrantId = "CustomLocatorNodePlugin"
+class ConeReaderLocator(OpenMayaUI.MPxLocatorNode):
+    name = "coneReaderLocator"
+    id = OpenMaya.MTypeId(0x00001)
+    drawDbClassification = "drawdb/geometry/coneReaderLocator"
+    drawRegistrantId = "coneReaderLocatorNodePlugin"
+
+    # node inputs/outputs
+    input = OpenMaya.MObject()
+    inputRadius = OpenMaya.MObject()
+    output = OpenMaya.MObject()
 
     @staticmethod
     def creator():
-        return CustomLocator()
+        return ConeReaderLocator()
 
-    @staticmethod
-    def initialize():
+    #@staticmethod
+    @classmethod
+    def initialize(self):
         """
         unitFn = OpenMaya.MFnUnitAttribute()
 
@@ -54,13 +56,53 @@ class CustomLocator(OpenMayaUI.MPxLocatorNode):
 
         OpenMaya.MPxNode.addAttribute(CustomLocator.size)
         """
-        pass
+
+        # input radius
+        n_attr = OpenMaya.MFnNumericAttribute()
+
+        self.inputRadius = n_attr.create(
+            "inputRadius", "blahPoop", OpenMaya.MFnNumericData.kFloat, 1.0
+        )
+
+        # set attribute properties
+        n_attr.storable = True
+        n_attr.keyable = True
+        n_attr.writable = True
+
+        # input
+        n_attr = OpenMaya.MFnNumericAttribute()
+
+        self.input = n_attr.create(
+            "input", "input", OpenMaya.MFnNumericData.kFloat, 1.0
+        )
+
+        # set attribute properties
+        n_attr.storable = True
+        n_attr.writable = True
+
+        # output
+        n_attr = OpenMaya.MFnNumericAttribute()
+
+        self.output = n_attr.create(
+            "output", "out", OpenMaya.MFnNumericData.kFloat, 0.0
+        )
+
+        # set attribute properties
+        n_attr.storable = True
+        #n_attr.writable = True
+
+        # add attributes
+        self.addAttribute(self.input)
+        self.addAttribute(self.inputRadius)
+        self.addAttribute(self.output)
+        self.attributeAffects(self.inputRadius, self.output)
+        self.attributeAffects(self.input, self.output)
 
     def __init__(self):
         OpenMayaUI.MPxLocatorNode.__init__(self)
 
 
-class CustomLocatorData(OpenMaya.MUserData):
+class ConeReaderLocatorData(OpenMaya.MUserData):
     """ Construct some initial user data to be passed around by the DrawManager
     """
 
@@ -68,14 +110,15 @@ class CustomLocatorData(OpenMaya.MUserData):
         OpenMaya.MUserData.__init__(self, False)  # don't delete after draw
 
         self.test = "stuff"
+        self.radius = 1.0
 
 
-class CustomLocatorDrawOverride(OpenMayaRender.MPxDrawOverride):
+class ConeReaderLocatorDrawOverride(OpenMayaRender.MPxDrawOverride):
     """ This handles the actually drawing of stuff.
     """
     @staticmethod
     def creator(obj):
-        return CustomLocatorDrawOverride(obj)
+        return ConeReaderLocatorDrawOverride(obj)
 
     # By setting isAlwaysDirty to false in MPxDrawOverride constructor, the
     # draw override will be updated (via prepareForDraw()) only when the node
@@ -86,17 +129,30 @@ class CustomLocatorDrawOverride(OpenMayaRender.MPxDrawOverride):
         OpenMayaRender.MPxDrawOverride.__init__(
             self, obj, None, isAlwaysDirty=False)
 
+    def _get_input_radius(self, dag_path):
+        node = dag_path.node()
+        plug = OpenMaya.MPlug(node, ConeReaderLocator.inputRadius)
+
+        if plug.isNull:
+            return 1.0
+
+        return plug.asFloat()
+
     def supportedDrawAPIs(self):
         # this plugin supports both GL and DX
         return OpenMayaRender.MRenderer.kOpenGL | OpenMayaRender.MRenderer.kDirectX11 | OpenMayaRender.MRenderer.kOpenGLCoreProfile
 
-    def prepareForDraw(self, objPath, cameraPath, frameContext, oldData):
+    def prepareForDraw(self, dag_path, cameraPath, frameContext, oldData):
         # Retrieve data cache (create if does not exist)
         data = oldData
-        if not isinstance(data, CustomLocatorData):
-            data = CustomLocatorData()
+        if not isinstance(data, ConeReaderLocatorData):
+            data = ConeReaderLocatorData()
 
-        data.fColor = OpenMayaRender.MGeometryUtilities.wireframeColor(objPath)
+        data.fColor = OpenMayaRender.MGeometryUtilities.wireframeColor(
+            dag_path
+        )
+
+        data.radius = self._get_input_radius(dag_path)
 
         return data
 
@@ -114,7 +170,7 @@ class CustomLocatorDrawOverride(OpenMayaRender.MPxDrawOverride):
         """
 
         locatordata = data
-        if not isinstance(locatordata, CustomLocatorData):
+        if not isinstance(locatordata, ConeReaderLocatorData):
             return
 
         drawManager.beginDrawable()
@@ -125,7 +181,7 @@ class CustomLocatorDrawOverride(OpenMayaRender.MPxDrawOverride):
         # draw a green wireframe cone
         base = OpenMaya.MPoint(0.0, 0.0, 0.0)
         direction = OpenMaya.MVector(0.0, 0.0, 1.0)
-        radius = 1.0
+        radius = locatordata.radius
         height = 2.0
         filled = False
 
@@ -203,32 +259,39 @@ def initializePlugin(obj):
     plugin = OpenMaya.MFnPlugin(obj)
 
     try:
-        plugin.registerNode(CustomLocator.name, CustomLocator.id, CustomLocator.creator,
-                            CustomLocator.initialize, OpenMaya.MPxNode.kLocatorNode, CustomLocator.drawDbClassification)
+        plugin.registerNode(
+            ConeReaderLocator.name,
+            ConeReaderLocator.id,
+            ConeReaderLocator.creator,
+            ConeReaderLocator.initialize,
+            OpenMaya.MPxNode.kLocatorNode,
+            ConeReaderLocator.drawDbClassification
+        )
     except:
-        sys.stderr.write("Failed to register node\n")
-        raise Exception("poop bags")
+        raise Exception("Failed to register node\n")
 
     try:
         OpenMayaRender.MDrawRegistry.registerDrawOverrideCreator(
-            CustomLocator.drawDbClassification, CustomLocator.drawRegistrantId, CustomLocatorDrawOverride.creator)
+            ConeReaderLocator.drawDbClassification,
+            ConeReaderLocator.drawRegistrantId,
+            ConeReaderLocatorDrawOverride.creator
+        )
     except:
-        sys.stderr.write("Failed to register override\n")
-        raise Exception("poop bags")
+        raise Exception("Failed to register override\n")
 
 
 def uninitializePlugin(obj):
     plugin = OpenMaya.MFnPlugin(obj)
 
     try:
-        plugin.deregisterNode(CustomLocator.id)
+        plugin.deregisterNode(ConeReaderLocator.id)
     except:
-        sys.stderr.write("Failed to deregister node\n")
-        raise Exception("poop bags")
+        raise Exception("Failed to deregister node\n")
 
     try:
         OpenMayaRender.MDrawRegistry.deregisterDrawOverrideCreator(
-            CustomLocator.drawDbClassification, CustomLocator.drawRegistrantId)
+            ConeReaderLocator.drawDbClassification,
+            ConeReaderLocator.drawRegistrantId
+        )
     except:
-        sys.stderr.write("Failed to deregister override\n")
-        raise Exception("poop bags")
+        raise Exception("Failed to deregister override\n")
