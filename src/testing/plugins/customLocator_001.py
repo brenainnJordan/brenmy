@@ -206,15 +206,13 @@ def initializePlugin(obj):
         plugin.registerNode(CustomLocator.name, CustomLocator.id, CustomLocator.creator,
                             CustomLocator.initialize, OpenMaya.MPxNode.kLocatorNode, CustomLocator.drawDbClassification)
     except:
-        sys.stderr.write("Failed to register node\n")
-        raise Exception("poop bags")
+        raise Exception("Failed to register node")
 
     try:
         OpenMayaRender.MDrawRegistry.registerDrawOverrideCreator(
             CustomLocator.drawDbClassification, CustomLocator.drawRegistrantId, CustomLocatorDrawOverride.creator)
     except:
-        sys.stderr.write("Failed to register override\n")
-        raise Exception("poop bags")
+        raise Exception("Failed to register override")
 
 
 def uninitializePlugin(obj):
@@ -223,12 +221,10 @@ def uninitializePlugin(obj):
     try:
         plugin.deregisterNode(CustomLocator.id)
     except:
-        sys.stderr.write("Failed to deregister node\n")
-        raise Exception("poop bags")
+        raise Exception("Failed to deregister node")
 
     try:
         OpenMayaRender.MDrawRegistry.deregisterDrawOverrideCreator(
             CustomLocator.drawDbClassification, CustomLocator.drawRegistrantId)
     except:
-        sys.stderr.write("Failed to deregister override\n")
-        raise Exception("poop bags")
+        raise Exception("Failed to deregister override")
