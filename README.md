@@ -1,10 +1,38 @@
-# maya_sandbox
-Example code or testing/trying out code specifically for Maya
+# brenmy
+
+maya scripts, plugins and general stuff
+
+
+# brenmy\python\brenmy
+
+python module
+
+append to sys.path
+
+
+# brenmy\python\plugins
+
+python plugins
+
+Maya.env:
+
+MAYA_PLUG_IN_PATH = F:\Repos\brenmy\python\plugins
+
+
+
+# brenmy\src
+
+cpp plugin source code
+
+
+# brenmy\sandbox
+
+testing/trying out python scripts or cpp code
 
 
 Maya.env:
 
-MAYA_PLUG_IN_PATH = E:\dev\python\maya_sandbox\src\plugins
+MAYA_PLUG_IN_PATH = F:\Repos\brenmy\sandbox\python\plugins
 
 
 Plugin Id's
@@ -17,13 +45,12 @@ Maya example plugins range:
 0x80000 - 0xfffff (524288 - 1048575)
 
 
-
-/examples/sourced/plugins
+brenmy\sandbox\python\plugins\sourced
 
 sineNode - 0x87000
 
 
-/plugins
+brenmy\sandbox\python\plugins
 
 ConeReaderLocator - 0x00001
 
