@@ -59,11 +59,13 @@ class ValueBarLocatorData(OpenMaya.MUserData):
     barColor = (0.0, 1.0, 0.0)
 
     barHasMin = True
-    barMin = 0.0
+    barMinValue = 0.0
+    barMinVisibility = True
     barMinColor = (0.0, 0.0, 1.0)
 
     barHasMax = True
-    barMax = 1.0
+    barMaxValue = 1.0
+    barMaxVisibility = True
     barMaxColor = (1.0, 0.0, 0.0)
 
     def __init__(self):
@@ -90,12 +92,16 @@ class ValueBarLocator(OpenMayaUI.MPxLocatorNode):
     # TODO
     barAlpha = OpenMaya.MObject()
 
+    barMinComp = OpenMaya.MObject()
     barHasMin = OpenMaya.MObject()
-    barMin = OpenMaya.MObject()
+    barMinValue = OpenMaya.MObject()
+    barMinVisibility = OpenMaya.MObject()
     barMinColor = OpenMaya.MObject()
 
+    barMaxComp = OpenMaya.MObject()
     barHasMax = OpenMaya.MObject()
-    barMax = OpenMaya.MObject()
+    barMaxValue = OpenMaya.MObject()
+    barMaxVisibility = OpenMaya.MObject()
     barMaxColor = OpenMaya.MObject()
 
     @staticmethod
@@ -128,6 +134,9 @@ class ValueBarLocator(OpenMayaUI.MPxLocatorNode):
         cls._create_bar_aim_attr()
         cls._create_bar_up_attr()
         cls._create_bar_color_attr()
+
+        cls._create_min_comp_attr()
+        cls._create_max_comp_attr()
 
     @classmethod
     def _create_input_value_attr(cls):
@@ -211,6 +220,138 @@ class ValueBarLocator(OpenMayaUI.MPxLocatorNode):
         res = cls.addAttribute(cls.barColor)
         return res
 
+    @classmethod
+    def _create_bar_min_attr(cls):
+        """Create attr.
+        """
+        attr = OpenMaya.MFnNumericAttribute()
+
+        cls.barMin = attr.create(
+            "barMin", "min", OpenMaya.MFnNumericData.kFloat,
+            ValueBarLocatorData.barMin
+        )
+
+        res = cls.addAttribute(cls.barMin)
+        return res
+
+    @classmethod
+    def _create_bar_max_attr(cls):
+        """Create attr.
+        """
+        attr = OpenMaya.MFnNumericAttribute()
+
+        cls.barMax = attr.create(
+            "barMax", "max", OpenMaya.MFnNumericData.kFloat,
+            ValueBarLocatorData.barMax
+        )
+
+        res = cls.addAttribute(cls.barMax)
+        return res
+
+    @classmethod
+    def _create_min_comp_attr(cls):
+        """Create attr.
+        """
+        comp_attr = OpenMaya.MFnCompoundAttribute()
+        cls.barMinComp = comp_attr.create("barMinComp", "minc")
+
+        # has min
+        has_min_attr = OpenMaya.MFnNumericAttribute()
+
+        cls.barHasMin = has_min_attr.create(
+            "barHasMin", "hMin", OpenMaya.MFnNumericData.kBoolean,
+            ValueBarLocatorData.barHasMin
+        )
+
+        # min visibility
+        min_vis_attr = OpenMaya.MFnNumericAttribute()
+
+        cls.barMinVisibility = min_vis_attr.create(
+            "barMinVisibility", "minV", OpenMaya.MFnNumericData.kBoolean,
+            ValueBarLocatorData.barMinVisibility
+        )
+
+        # min value
+        min_val_attr = OpenMaya.MFnNumericAttribute()
+
+        cls.barMinValue = min_val_attr.create(
+            "barMinValue", "min", OpenMaya.MFnNumericData.kFloat,
+            ValueBarLocatorData.barMinValue
+        )
+
+        # min color
+        min_col_attr = OpenMaya.MFnNumericAttribute()
+
+        cls.barMinColor = min_col_attr.create(
+            "barMinColor", "minC", OpenMaya.MFnNumericData.k3Double,
+        )
+
+        min_col_attr.usedAsColor = True
+        min_col_attr.default = ValueBarLocatorData.barMinColor
+
+        # create attr hierarchy
+        comp_attr.addChild(cls.barHasMin)
+        comp_attr.addChild(cls.barMinVisibility)
+        comp_attr.addChild(cls.barMinValue)
+        comp_attr.addChild(cls.barMinColor)
+
+        # add comp attr
+        res = cls.addAttribute(cls.barMinComp)
+
+        return res
+
+    @classmethod
+    def _create_max_comp_attr(cls):
+        """Create attr.
+        """
+        comp_attr = OpenMaya.MFnCompoundAttribute()
+        cls.barMaxComp = comp_attr.create("barMaxComp", "maxc")
+
+        # has max
+        has_max_attr = OpenMaya.MFnNumericAttribute()
+
+        cls.barHasMax = has_max_attr.create(
+            "barHasMax", "hMax", OpenMaya.MFnNumericData.kBoolean,
+            ValueBarLocatorData.barHasMax
+        )
+
+        # max visibility
+        max_vis_attr = OpenMaya.MFnNumericAttribute()
+
+        cls.barMaxVisibility = max_vis_attr.create(
+            "barMaxVisibility", "maxV", OpenMaya.MFnNumericData.kBoolean,
+            ValueBarLocatorData.barMaxVisibility
+        )
+
+        # max value
+        max_val_attr = OpenMaya.MFnNumericAttribute()
+
+        cls.barMaxValue = max_val_attr.create(
+            "barMaxValue", "max", OpenMaya.MFnNumericData.kFloat,
+            ValueBarLocatorData.barMaxValue
+        )
+
+        # max color
+        max_col_attr = OpenMaya.MFnNumericAttribute()
+
+        cls.barMaxColor = max_col_attr.create(
+            "barMaxColor", "maxC", OpenMaya.MFnNumericData.k3Double,
+        )
+
+        max_col_attr.usedAsColor = True
+        max_col_attr.default = ValueBarLocatorData.barMaxColor
+
+        # create attr hierarchy
+        comp_attr.addChild(cls.barHasMax)
+        comp_attr.addChild(cls.barMaxVisibility)
+        comp_attr.addChild(cls.barMaxValue)
+        comp_attr.addChild(cls.barMaxColor)
+
+        # add comp attr
+        res = cls.addAttribute(cls.barMaxComp)
+
+        return res
+
     def __init__(self):
         OpenMayaUI.MPxLocatorNode.__init__(self)
 
@@ -238,25 +379,44 @@ class ValueBarLocatorDrawOverride(OpenMayaRender.MPxDrawOverride):
         OpenMayaRender.MPxDrawOverride.__init__(
             self, obj, None, isAlwaysDirty=False)
 
-    def _get_attr_float(self, attr, default):
+    def _get_attr_float(self, node, attr_name):
         """Get attribute value via plug.
         """
-        node = dag_path.node()
+        attr = getattr(ValueBarLocator, attr_name)
+        default_value = getattr(ValueBarLocatorData, attr_name)
+
         plug = OpenMaya.MPlug(node, attr)
 
         if plug.isNull:
-            return default
+            return default_value
 
         return plug.asFloat()
 
-    def _get_attr_float_multi(self, attr, default, child_count):
-        """Get multi attribute value via plug.
+    def _get_attr_bool(self, node, attr_name):
+        """Get attribute value via plug.
         """
-        node = dag_path.node()
+        attr = getattr(ValueBarLocator, attr_name)
+        default_value = getattr(ValueBarLocatorData, attr_name)
+
         plug = OpenMaya.MPlug(node, attr)
 
         if plug.isNull:
-            return default
+            return default_value
+
+        return plug.asBool()
+
+    def _get_attr_float_multi(self, node, attr_name):
+        """Get multi attribute value via plug.
+        """
+        attr = getattr(ValueBarLocator, attr_name)
+        default_value = getattr(ValueBarLocatorData, attr_name)
+
+        plug = OpenMaya.MPlug(node, attr)
+
+        if plug.isNull:
+            return default_value
+
+        child_count = plug.numChildren()
 
         return [
             plug.child(i).asFloat()
@@ -334,15 +494,6 @@ class ValueBarLocatorDrawOverride(OpenMayaRender.MPxDrawOverride):
         else:
             data = ValueBarLocatorData()
 
-#         data.fColor = OpenMayaRender.MGeometryUtilities.wireframeColor(
-#             dag_path)
-
-#         data.inputValue = self._get_input_value(dag_path)
-#         data.barWidth = self._get_input_bar_width(dag_path)
-#         data.barUp = self._get_input_bar_up(dag_path)
-#         data.barAim = self._get_input_bar_normal(dag_path)
-#         data.barColor = self._get_input_bar_color(dag_path)
-
         node = dag_path.node()
 
         data.inputValue = self._get_input_value(node)
@@ -350,6 +501,18 @@ class ValueBarLocatorDrawOverride(OpenMayaRender.MPxDrawOverride):
         data.barAim = self._get_input_bar_aim(node)
         data.barUp = self._get_input_bar_up(node)
         data.barColor = self._get_input_bar_color(node)
+
+        # min
+        data.barHasMin = self._get_attr_bool(node, "barHasMin")
+        data.barMinVisibility = self._get_attr_bool(node, "barMinVisibility")
+        data.barMinValue = self._get_attr_float(node, "barMinValue")
+        data.barMinColor = self._get_attr_float_multi(node, "barMinColor")
+
+        # max
+        data.barHasMax = self._get_attr_bool(node, "barHasMax")
+        data.barMaxVisibility = self._get_attr_bool(node, "barMaxVisibility")
+        data.barMaxValue = self._get_attr_float(node, "barMaxValue")
+        data.barMaxColor = self._get_attr_float_multi(node, "barMaxColor")
 
         return data
 
@@ -363,6 +526,10 @@ class ValueBarLocatorDrawOverride(OpenMayaRender.MPxDrawOverride):
         drawManager = OpenMayaRender.MUIDrawManager
 
         drawManager handles the drawing of stuff in Viewport 2.0, such as OpenGl calls
+
+        TODO cache calculated values
+
+        TODO min and max rectangles
 
         """
 
@@ -380,19 +547,30 @@ class ValueBarLocatorDrawOverride(OpenMayaRender.MPxDrawOverride):
         # (direction the face points towards)
         normal_vector = (aim_vector ^ up_vector) ^ aim_vector
 
-#         end_point = OpenMaya.MPoint(
-#             direction * cache_data.inputValue
-#         )
-
         drawManager.setColor(
             OpenMaya.MColor(
                 cache_data.barColor + [1.0]
             )
         )
 
-        # draw rectacle
+        # get values
+        if cache_data.barHasMin:
+            start_value = cache_data.barMinValue
+        else:
+            start_value = 0.0
+
+        if cache_data.barHasMin and cache_data.inputValue < cache_data.barMinValue:
+            end_value = cache_data.barMinValue
+        elif cache_data.barHasMax and cache_data.inputValue > cache_data.barMaxValue:
+            end_value = cache_data.barMaxValue
+        else:
+            end_value = cache_data.inputValue
+
+        bar_height = end_value - start_value
+
+        # draw rectangle
         center_point = OpenMaya.MPoint(
-            aim_vector * cache_data.inputValue * 0.5
+            aim_vector * ((bar_height * 0.5) + start_value)
         )
 
         drawManager.rect(
@@ -400,7 +578,7 @@ class ValueBarLocatorDrawOverride(OpenMayaRender.MPxDrawOverride):
             aim_vector,
             normal_vector,
             cache_data.barWidth,
-            cache_data.inputValue * 0.5,
+            bar_height * 0.5,
             True,  # filled = True
         )
 
