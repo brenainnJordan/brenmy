@@ -70,7 +70,7 @@ class ConeReaderLocator(OpenMayaUI.MPxLocatorNode):
         n_attr.writable = True
 
         # input
-        n_attr = OpenMaya.MFnNumericAttribute()
+#         n_attr = OpenMaya.MFnNumericAttribute()
 
         self.input = n_attr.create(
             "input", "input", OpenMaya.MFnNumericData.kFloat, 1.0
@@ -81,7 +81,7 @@ class ConeReaderLocator(OpenMayaUI.MPxLocatorNode):
         n_attr.writable = True
 
         # output
-        n_attr = OpenMaya.MFnNumericAttribute()
+#         n_attr = OpenMaya.MFnNumericAttribute()
 
         self.output = n_attr.create(
             "output", "out", OpenMaya.MFnNumericData.kFloat, 0.0

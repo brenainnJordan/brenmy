@@ -14,6 +14,7 @@ cmds.delete(test)
 cmds.flushUndo()
 cmds.unloadPlugin("PlyPointCloud.py")
 
+cmds.loadPlugin(r"D:\Repos\brenmy\sandbox\python\plugins\PlyPointCloud.py")
 cmds.loadPlugin(r"E:\dev\python\maya_sandbox\src\testing\plugins\PlyPointCloud.py")
 
 test = cmds.createNode("plyPointCloud")

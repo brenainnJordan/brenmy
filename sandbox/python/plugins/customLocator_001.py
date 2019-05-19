@@ -14,7 +14,7 @@ cmds.delete(test)
 cmds.flushUndo()
 cmds.unloadPlugin("customLocator_001.py")
 
-cmds.loadPlugin(r"E:\dev\python\maya_sandbox\src\testing\plugins\customLocator_001.py")
+cmds.loadPlugin(r"D:\Repos\brenmy\sandbox\python\plugins\customLocator_001.py")
 
 test = cmds.createNode("customLocator")
 
