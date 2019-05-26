@@ -6,6 +6,10 @@ Created on 23 Jun 2018
 Maya API skinCluster example code.
 Because we all need a little reminder every now and then...
 
+
+docs:
+http://help.autodesk.com/view/MAYAUL/2018/ENU/?guid=__py_ref_index_html
+
 '''
 
 

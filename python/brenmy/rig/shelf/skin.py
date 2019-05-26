@@ -7,7 +7,8 @@ Created on 25 Aug 2018
 
 from maya import cmds
 
-from ..utils.skin import get_skin_cluster
+from brenmy.deformers import bmSkin
+reload(bmSkin)
 
 
 def select_skinned_joints():
@@ -20,7 +21,7 @@ def select_skinned_joints():
     if mesh is None:
         return
 
-    skin_cluster = get_skin_cluster(mesh)
+    skin_cluster = bmSkin.get_skin_cluster(mesh)
     if not skin_cluster:
         return
 
