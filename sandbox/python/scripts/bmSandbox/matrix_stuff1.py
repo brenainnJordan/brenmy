@@ -10,10 +10,35 @@ import fbx
 import numpy
 from scipy.spatial.transform import Rotation as scipy_rotation
 
+from bmSandbox import matrix_stuff2
+reload(matrix_stuff2)
+
 from maya import cmds
 
 ROTATE_SEED = 16.6
 ROTATE_SEED = None
+
+x_mat = matrix_stuff2.XMatrixFunctions()
+y_mat = matrix_stuff2.YMatrixFunctions()
+z_mat = matrix_stuff2.ZMatrixFunctions()
+
+rotate_order_names = [
+    'xyz',
+    'yzx',
+    'zxy',
+    'xzy',
+    'yxz',
+    'zyx'
+]
+
+rotate_order_matrices = {
+    'xyz': x_mat * y_mat * z_mat,
+    'yzx': y_mat * z_mat * x_mat,
+    'zxy': z_mat * x_mat * y_mat,
+    'xzy': x_mat * z_mat * y_mat,
+    'yxz': y_mat * x_mat * z_mat,
+    'zyx': z_mat * y_mat * x_mat,
+}
 
 
 def get_random_rotate(seed, min=-360, max=360):
@@ -128,11 +153,42 @@ def thingA1():
     print "FbxAMatrix rotation: ", test.GetR()
 
 
-def thingA2(rotation_order):
+def thingA2(rotate_order_index):
     """
     As above but with varying rotation order
     """
-    pass
+
+    loc = cmds.spaceLocator()[0]
+
+    rotate = get_random_rotate(ROTATE_SEED)
+
+    cmds.xform(loc, rotation=rotate)
+
+    rotate_order_name = rotate_order_names[rotate_order_index]
+    matrix_fn = rotate_order_matrices[rotate_order_name]
+
+    composed_matrix = matrix_fn.compose(rotate)
+    composed_matrix = numpy.array(composed_matrix).flatten().tolist()
+
+#     rotate_orders = cmds.attributeQuery("rotateOrder", node="locator1", listEnum=True)
+#     rotate_orders = rotate_orders[0].split(":")
+
+    local_matrix = cmds.getAttr(loc + ".matrix")
+    print "maya matrix xyz: ", local_matrix
+
+    cmds.setAttr(loc + ".rotateOrder", rotate_order_index)
+
+    local_matrix = cmds.getAttr(loc + ".matrix")
+
+    # test on new loc
+    loc1 = cmds.spaceLocator()[0]
+    cmds.setAttr(loc1 + ".rotateOrder", rotate_order_index)
+    cmds.xform(loc1, matrix=composed_matrix)
+
+    # print results
+    print "rotation: ", rotate
+    print "maya matrix attr: ", local_matrix
+    print "composed matrix: ", composed_matrix
 
 
 def thingA3(rotation_order):
@@ -401,6 +457,30 @@ def thingB1():
 
 def thingB2():
     """
-    Stuff
+    as above but using matrix function classes
+    """
+    rotate = get_random_rotate(ROTATE_SEED)
+
+    loc = cmds.spaceLocator()[0]
+    cmds.xform(loc, rotation=rotate)
+
+    matrix_fn = x_mat * y_mat * z_mat
+
+    local_matrix = cmds.getAttr(loc + ".matrix")
+
+    decomposed_rotate = matrix_fn.decompose(local_matrix, verbose=True)
+
+    # test
+    loc1 = cmds.spaceLocator()[0]
+    cmds.xform(loc1, rotation=decomposed_rotate)
+
+    # print results
+    print "original rotate: {}".format(rotate)
+    print "decomposed rotate: {}".format(decomposed_rotate)
+
+
+def thingB3(rotate_order_index):
+    """
+    as above with different rotation orders
     """
     pass
