@@ -256,7 +256,7 @@ class MatrixOperationProduct(object):
 
         return value
 
-    def evaluate_axis(self, axis, value):
+    def evaluate_axis_old(self, axis, value):
         """For each operation in product, attempt to solve.
         Returns:
             (MatrixOperationProduct) if partial or no solve
@@ -286,6 +286,30 @@ class MatrixOperationProduct(object):
         else:
             # return either float or MatrixOperation
             return pruned_operations
+
+    def evaluate_axis(self, axis, input_value):
+        """For each operation matching axis, solve using value.
+        """
+        evaluated_values = []
+        remaining_operations = []
+
+        for operation in self.get_operation_objects():
+            if operation.axis == axis:
+                evaluated_values.append(
+                    operation.evaluate(input_value)
+                )
+            else:
+                remaining_operations.append(operation)
+
+        if not len(evaluated_values):
+            raise Exception("Failed to evaluate axis: {}".format(axis))
+
+        return numpy.product(evaluated_values), remaining_operations
+
+    def evaluate_axes(self, axes, input_values):
+        """For each axis, solve values.
+        """
+        pass
 
     @classmethod
     def prune_operations(cls, operations):
@@ -378,6 +402,28 @@ class MatrixOperationProduct(object):
                 return False
         else:
             return False
+
+    def can_solve_using_axis(self, axis):
+        """Determine if we can solve operations by substituting specified axis.
+
+        returns:
+            (Axis) object of solvable axis, or
+            (False) if not solvable
+
+        """
+        remaining_axes = set([])
+
+        for operation in self.get_operation_objects():
+            if operation.axis != axis:
+                remaining_axes.add(operation.axis)
+
+        if len(remaining_axes) == 1:
+            return list(remaining_axes)[0]
+        else:
+            return False
+
+    def get_axes_substitute(self, thing):
+        pass
 
     def solve(self, input_value):
         """Solve an axis from input value.
@@ -622,7 +668,7 @@ class MatrixFunctions(object):
         # assuming matrix is flat list
         # TODO check
         # maybe use numpy?
-        matrix = [
+        input_matrix = [
             matrix_values[0:4],
             matrix_values[4:8],
             matrix_values[8:12],
@@ -641,6 +687,7 @@ class MatrixFunctions(object):
         }
 
         solved_axes = []
+        remaining_axes = list(Axes.axes)
 
         for row_index, row in enumerate(self._matrix):
             for column_index, obj in enumerate(row):
@@ -652,13 +699,15 @@ class MatrixFunctions(object):
         if len(single_operations) == 1:
             row_index, column_index, operation = single_operations[0]
             # guess direction and +-90
-            matrix_value = matrix[row_index][column_index]
+            matrix_value = input_matrix[row_index][column_index]
 
             euler_value = operation.inverse(matrix_value)
 
             xyz_values[operation.axis] = euler_value
 
+            solved_axis = operation.axis
             solved_axes.append(operation.axis)
+            remaining_axes.remove(operation.axis)
 
             if verbose:
                 print "single operation: {} {} {} {}".format(
@@ -678,81 +727,135 @@ class MatrixFunctions(object):
             )
 
         # step 2:
-        # solve matrix for first axis
-        solved_matrix = list(self._matrix)
+        sin_values = {}
+        cos_values = {}
 
-        for solved_axis in solved_axes:
-            solved_axis_matrix = []
-
-            axis_value = xyz_values[solved_axis]
-
-            for row_index in range(4):
-                solved_row = []
-                for column_index in range(4):
-
-                    obj = solved_matrix[row_index][column_index]
-
-                    if isinstance(obj, MatrixOperation):
-                        if obj.axis == solved_axis:
-                            solved_row.append(
-                                obj.evaluate(axis_value)
-                            )
-                        else:
-                            solved_row.append(obj)
-                    elif isinstance(obj, MatrixOperationProduct):
-                        solved_row.append(
-                            obj.evaluate_axis(solved_axis, axis_value)
-                        )
-                    elif isinstance(obj, MatrixOperationSum):
-                        # ignore for now
-                        solved_row.append(obj)
-                    elif isinstance(obj, (float, int)):
-                        # use value
-                        solved_row.append(obj)
-                    else:
-                        raise Exception(
-                            "Unexpected object in matrix: {}".format(obj))
-
-                solved_axis_matrix.append(solved_row)
-
-        # check for new single operations
-        cos_operations = {
-            XAxis: [],
-            YAxis: [],
-            ZAxis: [],
-        }
-
-        sin_operations = {
-            XAxis: [],
-            YAxis: [],
-            ZAxis: [],
-        }
-
-        for row_index, row in enumerate(solved_axis_matrix):
+        # determine which products can be solved
+        # and solve...
+        for row_index, row in enumerate(self._matrix):
             for column_index, obj in enumerate(row):
-                if isinstance(obj, MatrixOperation):
-                    if obj.trig_function == math.sin:
-                        sin_operations[obj.axis].append(
-                            (row_index, column_index, obj)
-                        )
-                    elif obj.trig_function == math.cos:
-                        cos_operations[obj.axis].append(
-                            (row_index, column_index, obj)
+                if isinstance(obj, MatrixOperationProduct):
+                    if obj.can_solve_using_axis(solved_axis):
+
+                        evaluated_value, remaining_operations = obj.evaluate_axis(
+                            solved_axis,
+                            xyz_values[solved_axis]
                         )
 
-        if not len(cos_operations) and not len(sin_operations):
-            raise Exception(
-                "Failed to solve Matrix function (no cos/sin single operations)"
+                        if len(remaining_operations) > 1:
+                            # TODO
+                            # solve more than one remaining operation
+                            continue
+
+                        r_opp = remaining_operations[0]
+
+                        matrix_value = input_matrix[row_index][column_index]
+
+                        trig_value = matrix_value / evaluated_value
+
+                        if r_opp.sign == SignNegative:
+                            trig_value *= -1
+
+                        if r_opp.trig_function == math.sin:
+                            # TODO append values
+                            # and compare to verify results
+                            sin_values[r_opp.axis] = trig_value
+                        elif r_opp.trig_function == math.cos:
+                            cos_values[r_opp.axis] = trig_value
+                        else:
+                            raise Exception("Something?")
+
+#         if not len(sin_values) and not len(cos_values):
+#             raise Exception(
+#                 "Failed to solve Matrix function (no sin/cos operations)"
+#             )
+
+        for axis in list(remaining_axes):
+            if axis not in sin_values and axis not in cos_values:
+                continue
+
+            axis_value = get_sine_cosine_angle(
+                sin_values[axis], cos_values[axis], degrees=False
             )
 
-        # check operation axes
-        # TODO
+            xyz_values[axis] = axis_value
 
-        # use first operations
-        # TODO
-        sin_value = None
-        cos_value = None
-        get_sine_cosine_angle(sin_value, cos_value, degrees=True)
+            solved_axes.append(axis)
+            remaining_axes.remove(axis)
+
+        # maybe this is enough?!
+        # TODO test
+        if len(solved_axes) != 3:
+            raise Exception(
+                "Failed to solve Matrix function (no sin/cos operations for stuff)"
+            )
+
+#         # solve matrix for first axis
+#         solved_matrix = list(self._matrix)
+#
+#         for solved_axis in solved_axes:
+#             solved_axis_matrix = []
+#
+#             axis_value = xyz_values[solved_axis]
+#
+#             for row_index in range(4):
+#                 solved_row = []
+#                 for column_index in range(4):
+#
+#                     obj = solved_matrix[row_index][column_index]
+#
+#                     if isinstance(obj, MatrixOperation):
+#                         if obj.axis == solved_axis:
+#                             solved_row.append(
+#                                 obj.evaluate(axis_value)
+#                             )
+#                         else:
+#                             solved_row.append(obj)
+#                     elif isinstance(obj, MatrixOperationProduct):
+#                         solved_row.append(
+#                             obj.evaluate_axis(solved_axis, axis_value)
+#                         )
+#                     elif isinstance(obj, MatrixOperationSum):
+#                         # ignore for now
+#                         solved_row.append(obj)
+#                     elif isinstance(obj, (float, int)):
+#                         # use value
+#                         solved_row.append(obj)
+#                     else:
+#                         raise Exception(
+#                             "Unexpected object in matrix: {}".format(obj))
+#
+#                 solved_axis_matrix.append(solved_row)
+#
+#         # check for new single operations
+#         cos_operations = {
+#             XAxis: [],
+#             YAxis: [],
+#             ZAxis: [],
+#         }
+#
+#         sin_operations = {
+#             XAxis: [],
+#             YAxis: [],
+#             ZAxis: [],
+#         }
+#
+#         for row_index, row in enumerate(solved_axis_matrix):
+#             for column_index, obj in enumerate(row):
+#                 if isinstance(obj, MatrixOperation):
+#                     if obj.trig_function == math.sin:
+#                         sin_operations[obj.axis].append(
+#                             (row_index, column_index, obj)
+#                         )
+#                     elif obj.trig_function == math.cos:
+#                         cos_operations[obj.axis].append(
+#                             (row_index, column_index, obj)
+#                         )
+#
+#         if not len(cos_operations) and not len(sin_operations):
+#             raise Exception(
+#                 "Failed to solve Matrix function (no cos/sin single operations)"
+#             )
 
         # compose xyz list
         rotate = [xyz_values[i] for i in Axes.axes]

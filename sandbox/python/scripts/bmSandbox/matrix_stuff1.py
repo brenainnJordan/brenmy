@@ -472,15 +472,47 @@ def thingB2():
 
     # test
     loc1 = cmds.spaceLocator()[0]
+    cmds.xform(loc1, matrix=local_matrix)
+    maya_decomp = cmds.xform(loc1, query=True, rotation=True)
+
     cmds.xform(loc1, rotation=decomposed_rotate)
 
     # print results
     print "original rotate: {}".format(rotate)
+    print "maya decomp: {}".format(maya_decomp)
     print "decomposed rotate: {}".format(decomposed_rotate)
 
 
 def thingB3(rotate_order_index):
     """
     as above with different rotation orders
+
+
     """
-    pass
+    rotate_order_name = rotate_order_names[rotate_order_index]
+    matrix_fn = rotate_order_matrices[rotate_order_name]
+
+    rotate = get_random_rotate(ROTATE_SEED)
+
+    loc = cmds.spaceLocator()[0]
+    cmds.setAttr(loc + ".rotateOrder", rotate_order_index)
+    cmds.xform(loc, rotation=rotate)
+
+    local_matrix = cmds.getAttr(loc + ".matrix")
+
+    decomposed_rotate = matrix_fn.decompose(local_matrix, verbose=True)
+
+    # test
+    loc1 = cmds.spaceLocator()[0]
+    cmds.setAttr(loc1 + ".rotateOrder", rotate_order_index)
+
+    cmds.xform(loc1, matrix=local_matrix)
+    maya_decomp = cmds.xform(loc1, query=True, rotation=True)
+
+    cmds.xform(loc1, rotation=decomposed_rotate)
+
+    # print results
+    print "rotate order: {}".format(rotate_order_name)
+    print "original rotate: {}".format(rotate)
+    print "maya decomp: {}".format(maya_decomp)
+    print "decomposed rotate: {}".format(decomposed_rotate)
