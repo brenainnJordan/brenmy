@@ -15,9 +15,14 @@ from pymel.core import resourceManager
 for item in resourceManager(nameFilter='*'):
     try:
         # Make sure the folder exists before attempting.
-        resourceManager(saveAs=(
-            item, "E:/dev/python/standalone_tools/examples/icons/maya/{0}".format(item)))
+        resourceManager(
+            saveAs=(
+                item,
+                #                 "E:/dev/python/standalone_tools/examples/icons/maya/{0}".format(item)
+                "D:\Repos\dataDump\icons\maya_2018\{0}".format(item)
+            )
+        )
     except:
         # For the cases in which some files do not work for windows, name
         # formatting wise. I'm looking at you 'http:'!
-        print item
+        print "failed to export: {}".format(item)
