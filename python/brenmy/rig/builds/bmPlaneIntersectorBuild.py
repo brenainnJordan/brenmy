@@ -88,7 +88,7 @@ class BmPlaneIntersectorBuild(bmCmdsBuild.BmCmdsBuildBase):
         self.set_attr(self._plane_vector_product, "operation", 3)  # vecto matrix mult
 
         self.set_attr(self._origin_plane_vector, "operation", 2) # subtract
-        
+
         self.set_attr(self._angle_check_condition, "operation", 0) # equal
         self.set_attr(self._angle_check_condition, "colorIfTrue", 1, 0, 0)
         self.set_attr(self._angle_check_condition, "colorIfFalse", 2, 0, 0)
