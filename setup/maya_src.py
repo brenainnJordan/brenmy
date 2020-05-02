@@ -1,8 +1,10 @@
 """Script to be run inside maya to add python sources
 """
-
 import sys
 import os
+
+import fbx
+from maya import cmds
 
 REPO_DIR = r"D:\Repos"
 
@@ -18,3 +20,12 @@ for src_dir in src_dirs:
     if src_dir not in sys.path:
         sys.path.append(src_dir)
         print "Src added: {}".format(src_dir)
+
+# instance global fbx manager if it doesn't exist
+global FBX_MANAGER
+
+if "FBX_MANAGER" not in globals():
+    cmds.warning("creating new FbxManager")
+    FBX_MANAGER = fbx.FbxManager.Create()
+else:
+    print "global FBX_MANAGER found: {}".format(FBX_MANAGER)
