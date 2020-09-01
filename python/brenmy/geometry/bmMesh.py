@@ -7,7 +7,7 @@ OpenMaya API mesh utilities
 
 '''
 
-from maya import OpenMaya
+from maya.api import OpenMaya
 
 
 def get_points(mesh):

@@ -11,8 +11,10 @@ REPO_DIR = r"D:\Repos"
 src_dirs = [
 	os.path.join(REPO_DIR, r"brenpy\python"),
     os.path.join(REPO_DIR, r"brenmy\python"),
+    os.path.join(REPO_DIR, r"brenmy\sandbox\python\scripts"),
     os.path.join(REPO_DIR, r"brenfbxpy\python"),
     os.path.join(REPO_DIR, r"brenfbxdccpy\python"),
+    os.path.join(REPO_DIR, r"brenrig\python"),
 	r"D:\Dev\maya\numpy\numpy-1.13.1+mkl-cp27-none-win_amd64"
 ]
 

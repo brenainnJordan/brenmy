@@ -26,13 +26,36 @@ def get_skin_cluster_weights(mesh, skin_cluster):
 
     # get skin
     sl.add(skin_cluster)
-    m_skin = sl.getDependNode(1)
+    mfn_skin = sl.getDependNode(1)
 
     # we just pass in an empty MObject to return all weights
     components = OpenMaya.MObject()
 
     # get weights
-    m_skin = OpenMayaAnim.MFnSkinCluster(m_skin)
-    weights, influence_count = m_skin.getWeights(mesh_dag, components)
+    mfn_skin = OpenMayaAnim.MFnSkinCluster(mfn_skin)
+    weights, influence_count = mfn_skin.getWeights(mesh_dag, components)
 
     return weights
+
+
+def flood_skin_cluster_influence_weights(mesh, skin_cluster, influence, weight):
+    """
+    TODO/wip
+    """
+    sl = OpenMaya.MSelectionList()
+
+    sl.add(mesh)
+    sl.add(skin_cluster)
+
+    mesh_dag = sl.getDagPath(0)
+    m_skin = sl.getDependNode(1)
+    mfn_skin = OpenMayaAnim.MFnSkinCluster(m_skin)
+
+    component = OpenMaya.MFnSingleIndexedComponent().create(OpenMaya.MFn.kMeshVertexComponent)
+
+    # TODO find this
+    influence_index = 0
+
+    mfn_skin.setWeights(mesh_dag, component, influence_index, weight)
+
+    return True

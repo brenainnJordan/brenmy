@@ -11,6 +11,7 @@ SRC_DIRS = [
     os.path.join(REPO_DIR, r"brenmy\python"),
     os.path.join(REPO_DIR, r"brenfbxpy\python"),
     os.path.join(REPO_DIR, r"brenfbxdccpy\python"),
+    os.path.join(REPO_DIR, r"brenrig\python"),
 ]
 
 def is_src(filepath):
