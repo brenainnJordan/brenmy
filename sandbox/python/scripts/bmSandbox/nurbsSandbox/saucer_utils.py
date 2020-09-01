@@ -4,6 +4,9 @@
 from maya import cmds
 import math
 
+from brenmy.geometry.nurbs import bmCurveOnSurface
+reload(bmCurveOnSurface)
+
 PLATE_SEPARATION_ATTR = "plateSeparation"
 DIVISION_SEPARATION_ATTR = "divisionSeparation"
 PLATE_COUNT_ATTR = "plateCount"
@@ -41,40 +44,6 @@ def is_curve_on_surface(curve, return_nodes):
     else:
         return False
 
-def create_birail_2_curve_on_surface(profile_1, profile_2, rail_1, rail_2, surface, name, parent):
-    birail = cmds.createNode("dpBirailSrf", name="{}_dpBirailSrf".format(name))
-
-    for curve, attr in [
-        (profile_1, "inputProfile1"),
-        (profile_2, "inputProfile2"),
-        (rail_1, "inputRail1"),
-        (rail_2, "inputRail2"),
-    ]:
-        cfs_node = cmds.createNode("curveFromSurfaceCoS", name="{}_{}_curveFromSurfaceCoS".format(name, curve))
-
-        cmds.connectAttr(
-            "{}.worldSpace[0]".format(surface),
-            "{}.inputSurface".format(cfs_node)
-        )
-
-        cmds.connectAttr(
-            "{}.worldSpace[0]".format(curve),
-            "{}.curveOnSurface".format(cfs_node)
-        )
-
-        cmds.connectAttr(
-            "{}.worldSpace[0]".format(curve),
-            "{}.{}".format(birail, attr)
-        )
-
-    cmds.setAttr("{}.transformMode".format(birail), 1)  # proportional
-
-    surface_transform = cmds.createNode("transform", name=name, parent=parent)
-    surface_shape = cmds.createNode("nurbsSurface", name="{}Shape".format(name), parent=surface_transform)
-
-    cmds.connectAttr("{}.outputSurface".format(birail), "{}.create".format(surface_shape))
-
-    return surface_transform, surface_shape, birail
 
 def create_birail_2(profile_1, profile_2, rail_1, rail_2, name, parent):
     birail = cmds.createNode("dpBirailSrf", name="{}_dpBirailSrf".format(name))
@@ -91,6 +60,11 @@ def create_birail_2(profile_1, profile_2, rail_1, rail_2, name, parent):
             curve_output = "{}.outputCurve".format(node)
 
         elif cos_res:
+
+            cmds.warning("Creating curveFromSurfaceCoS node: {}".format(node))
+
+            # TODO use bm build class
+
             # create curveFromSurfaceCoS to get output from curve on surface
             cfs_node = cmds.createNode("curveFromSurfaceCoS", name="{}{}_curveFromSurfaceCoS".format(name, node))
 
@@ -99,6 +73,7 @@ def create_birail_2(profile_1, profile_2, rail_1, rail_2, name, parent):
                 "{}.inputSurface".format(cfs_node)
             )
 
+            # TODO something if it has more than one output???
             cmds.connectAttr(
                 "{}.local[0]".format(cos_res[1]),
                 "{}.curveOnSurface".format(cfs_node)
@@ -147,12 +122,12 @@ saucer_utils.project_saucer_plate_curves(
 )
 
     """
-    offset_transforms, cfs_nodes = project_offset_curves(
+    cos_objects = project_offset_curves(
         control, curve, curve, surface, PLATE_SEPARATION_ATTR, use_surface_local=False, use_curve_local=False,
         on_surface=True, parent=parent
     )
 
-    return offset_transforms, cfs_nodes
+    return cos_objects
 
 def create_attrs(control):
     for attr in [
@@ -161,10 +136,6 @@ def create_attrs(control):
     ]:
         cmds.addAttr(control, longName=attr, defaultValue=1.0, keyable=True)
 
-class BmCurveOnSurface(object):
-    def __init__(self):
-        self._curve = None
-        self._surface = None
 
 def project_offset_curves(
         control, name, curve, surface, offset_attr,
@@ -204,8 +175,7 @@ saucer_sandbox.create_plate_separator_curves(
     surface_shape = cmds.listRelatives(surface, type="nurbsSurface")[0]
 
     offset_transforms = []
-    projected_transforms = []
-    cfs_nodes = []
+    cos_objects = []
 
     for suffix, direction in ("A", 1), ("B", -1):
 
@@ -233,73 +203,107 @@ saucer_sandbox.create_plate_separator_curves(
         cmds.connectAttr("{}.outputCurve[0]".format(offset_node), "{}.create".format(offset_shape))
 
         # project onto surface
-        project_node = cmds.createNode("projectCurve", name="{}{}_projectCurve".format(name, suffix))
-        # cmds.connectAttr("{}.outputCurve[0]".format(offset_node), "{}.inputCurve".format(project_node))
-        cmds.connectAttr("{}.worldSpace[0]".format(offset_shape), "{}.inputCurve".format(project_node))
-        cmds.connectAttr("{}.{}".format(surface, surface_space_attr), "{}.inputSurface".format(project_node))
-        cmds.setAttr("{}.useNormal".format(project_node), False)
-        cmds.setAttr("{}.direction".format(project_node), 0,-1,0)
-
-        min_tol = cmds.attributeQuery("tolerance", node=project_node, min=True)[0]
-        cmds.setAttr("{}.tolerance".format(project_node), min_tol)
-
-        # attach to surface
-        var_node = cmds.createNode(
-            "curveVarGroup", name="{}{}_curveVarGroup".format(name, suffix), parent=surface_shape
-        )
-
-        cmds.connectAttr("{}.outputCurve".format(project_node), "{}.create".format(var_node))
-
-        if on_surface:
-            projected_transform = cmds.createNode("transform", name="{}{}".format(name, suffix), parent=var_node)
-            projected_shape = cmds.createNode("nurbsCurve", name="{}{}Shape".format(name, suffix), parent=projected_transform)
-
-            cmds.connectAttr(
-                # "{}.outputCurve[0]".format(project_node), # doesn't work!
-                "{}.local[0]".format(var_node),
-                "{}.create".format(projected_shape)
+        if True:
+            curve_on_surface = bmCurveOnSurface.BmProjectCurveOnSurface(
+                name="{}{}COS".format(name, suffix),
+                curve_node=offset_node,
+                curve_attr="outputCurve[0]",
+                surface=surface,
+                use_surface_local=False,
+                direction=(0, 1, 0),
+                create_curve_outputs=True,
+                create_cfs_outputs=True,
+                use_cmd=False
             )
-
-            cfs_node = cmds.createNode("curveFromSurfaceCoS", name="{}{}_curveFromSurfaceCoS".format(name, suffix))
-            cfs_nodes.append(cfs_node)
-
-            cmds.connectAttr(
-                "{}.{}".format(surface_shape, surface_space_attr),
-                "{}.inputSurface".format(cfs_node)
-            )
-
-            cmds.connectAttr(
-                "{}.local[0]".format(var_node),
-                "{}.curveOnSurface".format(cfs_node)
-            )
-
         else:
-            projected_transform = cmds.createNode("transform", name="{}{}".format(name, suffix), parent=parent)
-            projected_shape = cmds.createNode("nurbsCurve", name="{}{}Shape".format(name, suffix), parent=projected_transform)
-
-            cfs_node = cmds.createNode("curveFromSurfaceCoS", name="{}{}_curveFromSurfaceCoS".format(name, suffix))
-
-            cmds.connectAttr(
-                "{}.{}".format(surface_shape, surface_space_attr),
-                "{}.inputSurface".format(cfs_node)
+            curve_on_surface = bmCurveOnSurface.BmProjectCurveOnSurface(
+                name="{}{}COS".format(name, suffix),
+                curve_node=offset_shape,
+                # curve_attr="worldSpace[0]",
+                surface=surface,
+                use_surface_local=False,
+                direction=(0, 1, 0),
+                create_curve_outputs=True,
+                create_cfs_outputs=True,
+                use_cmd=True
             )
 
-            cmds.connectAttr(
-                "{}.local[0]".format(var_node),
-                "{}.curveOnSurface".format(cfs_node)
-            )
+        curve_on_surface.build()
 
-            cmds.connectAttr(
-                "{}.outputCurve".format(cfs_node),
-                "{}.create".format(projected_shape)
-            )
+        cos_objects.append(curve_on_surface)
 
-        projected_transforms.append(projected_transform)
+    # for cos_object in cos_objects:
+    #     cos_object.refresh_outputs()
 
-    return projected_transforms, cfs_nodes
+    return cos_objects
+
+    #     project_node = cmds.createNode("projectCurve", name="{}{}_projectCurve".format(name, suffix))
+    #     # cmds.connectAttr("{}.outputCurve[0]".format(offset_node), "{}.inputCurve".format(project_node))
+    #     cmds.connectAttr("{}.worldSpace[0]".format(offset_shape), "{}.inputCurve".format(project_node))
+    #     cmds.connectAttr("{}.{}".format(surface, surface_space_attr), "{}.inputSurface".format(project_node))
+    #     cmds.setAttr("{}.useNormal".format(project_node), False)
+    #     cmds.setAttr("{}.direction".format(project_node), 0,-1,0)
+    #
+    #     min_tol = cmds.attributeQuery("tolerance", node=project_node, min=True)[0]
+    #     cmds.setAttr("{}.tolerance".format(project_node), min_tol)
+    #
+    #     # attach to surface
+    #     var_node = cmds.createNode(
+    #         "curveVarGroup", name="{}{}_curveVarGroup".format(name, suffix), parent=surface_shape
+    #     )
+    #
+    #     cmds.connectAttr("{}.outputCurve".format(project_node), "{}.create".format(var_node))
+    #
+    #     if on_surface:
+    #         projected_transform = cmds.createNode("transform", name="{}{}".format(name, suffix), parent=var_node)
+    #         projected_shape = cmds.createNode("nurbsCurve", name="{}{}Shape".format(name, suffix), parent=projected_transform)
+    #
+    #         cmds.connectAttr(
+    #             # "{}.outputCurve[0]".format(project_node), # doesn't work!
+    #             "{}.local[0]".format(var_node),
+    #             "{}.create".format(projected_shape)
+    #         )
+    #
+    #         cfs_node = cmds.createNode("curveFromSurfaceCoS", name="{}{}_curveFromSurfaceCoS".format(name, suffix))
+    #         cfs_nodes.append(cfs_node)
+    #
+    #         cmds.connectAttr(
+    #             "{}.{}".format(surface_shape, surface_space_attr),
+    #             "{}.inputSurface".format(cfs_node)
+    #         )
+    #
+    #         cmds.connectAttr(
+    #             "{}.local[0]".format(var_node),
+    #             "{}.curveOnSurface".format(cfs_node)
+    #         )
+    #
+    #     else:
+    #         projected_transform = cmds.createNode("transform", name="{}{}".format(name, suffix), parent=parent)
+    #         projected_shape = cmds.createNode("nurbsCurve", name="{}{}Shape".format(name, suffix), parent=projected_transform)
+    #
+    #         cfs_node = cmds.createNode("curveFromSurfaceCoS", name="{}{}_curveFromSurfaceCoS".format(name, suffix))
+    #
+    #         cmds.connectAttr(
+    #             "{}.{}".format(surface_shape, surface_space_attr),
+    #             "{}.inputSurface".format(cfs_node)
+    #         )
+    #
+    #         cmds.connectAttr(
+    #             "{}.local[0]".format(var_node),
+    #             "{}.curveOnSurface".format(cfs_node)
+    #         )
+    #
+    #         cmds.connectAttr(
+    #             "{}.outputCurve".format(cfs_node),
+    #             "{}.create".format(projected_shape)
+    #         )
+    #
+    #     projected_transforms.append(projected_transform)
+    #
+    # return projected_transforms, cfs_nodes
 
 
-def create_plate_separator_curves(control, name, parent, offsets_parent, surface, length):
+def create_plate_division_curves(control, name, parent, offsets_parent, surface, length):
     """
     Usage:
 
@@ -319,16 +323,16 @@ saucer_sandbox.create_plate_separator_curves(
 
     """
 
-    curve = cmds.curve(name=name, point=[(0,0,0), (length,0,0)], degree=1)
+    curve = cmds.curve(name=name, point=[(0, 0, 0), (length, 0, 0)], degree=1)
     cmds.parent(curve, parent)
     cmds.setAttr("{}.translate".format(curve), 0, 0, 0)
 
-    offset_transforms, cfs_nodes = project_offset_curves(
+    cos_objects = project_offset_curves(
         control, name, curve, surface, DIVISION_SEPARATION_ATTR, use_surface_local=False, use_curve_local=False,
         on_surface=True, parent=offsets_parent
     )
 
-    return curve, offset_transforms, cfs_nodes
+    return curve, cos_objects
 
 
 def create_saucer_plates(
@@ -359,71 +363,55 @@ saucer_utils.create_saucer_plates(
 
     # create divisions
     division_curves = []
-    division_cfs_nodes = []
+    division_cos_objects = []
 
     for i in range(division_count):
-        curve, offset_curves, cfs_nodes = create_plate_separator_curves(
+        curve, cos_objects = create_plate_division_curves(
             control, "plateDivision{}".format(i), divisions_grp, divisions_offsets_grp, saucer_surface, 100
         )
 
         cmds.setAttr("{}.rotateY".format(curve), 360.0*(float(i)/division_count))
 
-        division_curves.append(offset_curves)
-        division_cfs_nodes.append(cfs_nodes)
+        division_curves.append(curve)
+        division_cos_objects.append(cos_objects)
 
     # create plate offset curves
-    ring_curves = []
-    ring_cfs_nodes = []
+    ring_cos_objects = []
 
     for i in range(ring_count+1):
         curve = "{}{}".format(plate_curve_name, i+1)
-        offset_curves, cfs_nodes = project_saucer_plate_curves(control, curve, saucer_surface, ring_offsets_grp)
-        ring_curves.append(offset_curves)
-        ring_cfs_nodes.append(cfs_nodes)
+        cos_objects = project_saucer_plate_curves(control, curve, saucer_surface, ring_offsets_grp)
+        ring_cos_objects.append(cos_objects)
 
     # return
+    cmds.refresh()
+
+    for cos_objects in division_cos_objects + ring_cos_objects:
+        for cos_object in cos_objects:
+            cos_object.refresh_outputs()
 
     # create surfaces
     # TODO for some reason my projected curves aren't working with birail, even manually, figure out why
     for i in range(ring_count):
-        rail_1 = ring_curves[i][1]
-        rail_cfs_node_1 = ring_cfs_nodes[i][1]
+        rail_cos_1 = ring_cos_objects[i][1]
+        rail_cos_2 = ring_cos_objects[i + 1][0]
 
-        rail_2 = ring_curves[i+1][0]
-        rail_cfs_nodes_2 = ring_cfs_nodes[i + 1][0]
+        rail_1 = rail_cos_1.output_cfs_nodes()[0]
+        rail_2 = rail_cos_2.output_cfs_nodes()[0]
 
         for j in range(division_count):
-            profile_1 = division_curves[j][0]
-            profile_cfs_node_1 = division_cfs_nodes[j][0]
+            profile_cos_1 = division_cos_objects[j][0]
+            profile_1 = profile_cos_1.output_cfs_nodes()[0]
 
             if j+1 < division_count:
-                profile_2 = division_curves[j+1][1]
-                profile_cfs_node_2 = division_cfs_nodes[j+1][1]
+                profile_cos_2 = division_cos_objects[j+1][1]
             else:
-                profile_2 = division_curves[0][1]
-                profile_cfs_node_2 = division_cfs_nodes[0][1]
+                profile_cos_2 = division_cos_objects[0][1]
 
-            # surface_transform, surface_shape, birail = create_birail_2(
-            #     profile_1, profile_2, rail_1, rail_2, "plateSurface_{}_{}".format(i, j), plate_surface_grp
-            # )
+            profile_2 = profile_cos_2.output_cfs_nodes()[0]
 
             surface_transform, surface_shape, birail = create_birail_2(
-                profile_cfs_node_1, profile_cfs_node_2,
-                rail_cfs_node_1, rail_cfs_nodes_2,
+                profile_1, profile_2,
+                rail_1, rail_2,
                 "plateSurface_{}_{}".format(i, j), plate_surface_grp
             )
-
-            # angle = 360.0*(float(j)/division_count)
-            #
-            # if angle > 180.0:
-            #     surface_transform, surface_shape, birail = create_birail_2(
-            #         profile_cfs_node_1, profile_cfs_node_2,
-            #         rail_cfs_node_1, rail_cfs_nodes_2,
-            #         "plateSurface_{}_{}".format(i, j), plate_surface_grp
-            #     )
-            # else:
-            #     surface_transform, surface_shape, birail = create_birail_2(
-            #         profile_cfs_node_2, profile_cfs_node_1,
-            #         rail_cfs_node_1, rail_cfs_nodes_2,
-            #         "plateSurface_{}_{}".format(i, j), plate_surface_grp
-            #     )
