@@ -51,13 +51,13 @@ class BmProjectCurveOnSurface(bpObjects.BpValueDependant):
             "direction", kwargs, bpObjects.BpTypeFilter((list, tuple)), dependency=False, default_value=(0,1,0)
         )
 
-        create_curve_outputs = self.parse_kwarg(
-            "create_curve_outputs", kwargs, bpObjects.BpTypeFilter(bool), dependency=False, default_value=True
+        enable_curve_outputs = self.parse_kwarg(
+            "enable_curve_outputs", kwargs, bpObjects.BpTypeFilter(bool), dependency=False, default_value=True
         )
 
-        create_cfs_outputs = self.parse_kwarg(
-            "create_cfs_outputs", kwargs, bpObjects.BpTypeFilter(bool), dependency=False, default_value=True
-        )
+        # enable_cfs_outputs = self.parse_kwarg(
+        #     "enable_cfs_outputs", kwargs, bpObjects.BpTypeFilter(bool), dependency=False, default_value=True
+        # )
 
         # should we use the native maya command, or make nodes from scratch?
         use_cmd = self.parse_kwarg(
@@ -72,8 +72,8 @@ class BmProjectCurveOnSurface(bpObjects.BpValueDependant):
         self.add_loose_dependency(surface)
         self.add_loose_dependency(use_surface_local)
         self.add_loose_dependency(direction)
-        self.add_loose_dependency(create_curve_outputs)
-        self.add_loose_dependency(create_cfs_outputs)
+        self.add_loose_dependency(enable_curve_outputs)
+        # self.add_loose_dependency(enable_cfs_outputs)
         self.add_loose_dependency(use_cmd)
 
         # outputs
@@ -104,11 +104,12 @@ class BmProjectCurveOnSurface(bpObjects.BpValueDependant):
     def direction(self):
         return self.get_loose_dependency("direction")
 
-    def create_curve_outputs(self):
-        return self.get_loose_dependency("create_curve_outputs")
+    def enable_curve_outputs(self):
+        return self.get_loose_dependency("enable_curve_outputs")
 
-    def create_cfs_outputs(self):
-        return self.get_loose_dependency("create_cfs_outputs")
+    # called explicitly after refreshing outputs
+    # def enable_cfs_outputs(self):
+    #     return self.get_loose_dependency("enable_cfs_outputs")
 
     def use_cmd(self):
         return self.get_loose_dependency("use_cmd")
@@ -145,7 +146,16 @@ class BmProjectCurveOnSurface(bpObjects.BpValueDependant):
         return self._has_multiple_outputs
 
     def refresh_outputs(self):
+        """Populate output list with current transforms created by var group node.
 
+        Note this seems to be the only reliable way to keep track of these,
+        and must be called after other stuff in the scene has prompted the node to update.
+
+        Also note this is kinda flaky.
+
+        This seems to be consistent whether using the native maya command,
+        or by creating nodes from scratch.
+        """
         self._output_transforms = cmds.listRelatives(self._var_node)
 
         self._output_shapes = [
@@ -158,7 +168,6 @@ class BmProjectCurveOnSurface(bpObjects.BpValueDependant):
     def _build_cmd(self):
         """maya built-in command
         However I don't think we can give it other inputs?
-        # TODO rename nodes and return stuff ( ** wip ** )
         """
         var_node, project_node = cmds.projectCurve(
             self.curve_node().get(),
@@ -173,8 +182,6 @@ class BmProjectCurveOnSurface(bpObjects.BpValueDependant):
 
         self._project_node = "{}_projectCurve".format(self.name().get())
         cmds.rename(project_node, self._project_node)
-
-        # TODO curve from surface nodes
 
         return True
 
@@ -213,11 +220,18 @@ class BmProjectCurveOnSurface(bpObjects.BpValueDependant):
             )
 
         cmds.connectAttr(
-            "{}.local[0]".format(self.var_node()),
+            "{}.local[{}]".format(self.var_node(), output_index),
             "{}.curveOnSurface".format(cfs_node)
         )
 
         return cfs_node
+
+    def create_cfs_outputs(self):
+        for i, output_transform in enumerate(self.output_transforms()):
+            node = self._create_cfs_output(i)
+            self._output_cfs_nodes.append(node)
+
+        return True
 
     def _build_nodes(self):
         """Build nodes from scratch.
@@ -248,8 +262,8 @@ class BmProjectCurveOnSurface(bpObjects.BpValueDependant):
         cmds.setAttr("{}.useNormal".format(project_node), False)
         cmds.setAttr("{}.direction".format(project_node), *self.direction().get())
 
-        min_tol = cmds.attributeQuery("tolerance", node=project_node, min=True)[0]
-        cmds.setAttr("{}.tolerance".format(project_node), min_tol)
+        # min_tol = cmds.attributeQuery("tolerance", node=project_node, min=True)[0]
+        # cmds.setAttr("{}.tolerance".format(project_node), min_tol)
 
         # attach to surface
         # note that createNode will return a weird name when creating curveVarGroup
@@ -264,83 +278,15 @@ class BmProjectCurveOnSurface(bpObjects.BpValueDependant):
 
         # create outputs
         # note there could be more than one if the projected curve crosses a surface boundary
-        # return
-
-        # create first output
-        if False:
-            if self.create_curve_outputs().get():
-                transform, shape = self._create_curve_output(0)
-                self._output_transforms.append(transform)
-                self._output_shapes.append(shape)
-
-            if self.create_cfs_outputs().get():
-                cfs_node = self._create_cfs_output(0)
-                self._output_cfs_nodes.append(cfs_node)
-
-        # if cmds.listAttr("{}.local".format(var_node), multi=True) is None:
-        #     raise bmBuild.BmBuildError("No outputs found: {}".format(var_node))
 
         # calling get attr on the first output seems to be the only way to prompt
         # the node into creating an output curve
         _ = cmds.getAttr("{}.local[0]".format(var_node))
 
         # # subsequent calls fails to create additional curves where they would be created later
+        # # calling dgdirty or refresh also fails
         # _ = cmds.getAttr("{}.local[1]".format(var_node))
         # _ = cmds.getAttr("{}.local[2]".format(var_node))
-        #
-        # cmds.dgdirty("{}.create".format(var_node))
-        # cmds.dgdirty("{}.local".format(var_node))
-        # cmds.dgdirty(var_node)
-        #
-        # # cmds.getAttr("{}.local[1]".format(var_node))
-        # cmds.refresh()
-        # cmds.refresh()
-        # cmds.refresh(force=True)
-        # cmds.refresh(force=True)
-        # cmds.refresh(force=True)
-        # cmds.refresh()
-        # cmds.refresh()
-        # cmds.dgdirty("{}.create".format(var_node))
-        # cmds.dgdirty("{}.local".format(var_node))
-        # cmds.dgdirty(var_node)
-        # cmds.refresh()
-        # cmds.refresh(force=True)
-        # cmds.refresh(force=True)
-        # cmds.refresh(force=True)
-        # cmds.refresh()
-        #
-        # _ = cmds.getAttr("{}.local[0]".format(var_node))
-        # _ = cmds.getAttr("{}.local[1]".format(var_node))
-        # _ = cmds.getAttr("{}.local[2]".format(var_node))
-        #
-        # print "TEST, attrs", cmds.listAttr("{}.local".format(var_node), multi=True)
-        # print "TEST children", var_node, cmds.listRelatives(var_node)
-        # print "TEST, attrs", cmds.listAttr("{}.local".format(var_node), multi=True)
-        # print "TEST children", var_node, cmds.listRelatives(var_node)
-        # print "MAX", cmds.getAttr("{}.maxCreated".format(var_node))
-        # print "TEST, attrs", cmds.listAttr("{}.local".format(var_node), multi=True)
-        # print "TEST children", var_node, cmds.listRelatives(var_node)
-
-        # for i, output_attr in enumerate(cmds.listAttr("{}.local".format(var_node), multi=True)):
-        #     if i == 0:
-        #         continue
-        #
-        #     if i > 0:
-        #         self._has_multiple_outputs = True
-        #
-        #     test = cmds.listConnections("{}.{}".format(var_node, output_attr), source=False, destination=True)
-        #     print "TEST OUT ", test
-        #
-        #     # create curve output
-        #     if self.create_curve_outputs().get():
-        #         transform, shape = self._create_curve_output(i)
-        #         self._output_transforms.append(transform)
-        #         self._output_shapes.append(shape)
-        #
-        #     # create curve from surface node
-        #     if self.create_cfs_outputs().get():
-        #         cfs_node = self._create_cfs_output(i)
-        #         self._output_cfs_nodes.append(cfs_node)
 
         return True
 
