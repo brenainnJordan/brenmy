@@ -20,61 +20,82 @@ from maya import cmds
 from brenpy.core import bpObjects
 from brenpy.core import bpTypedObjects
 from brenmy.build import bmBuild
+from brenmy.build import bmCmdsBuild
 
 # TODO rework bmCmdsBuild to use value dependants etc.
 
-class BmProjectCurveOnSurface(bpObjects.BpValueDependant):
+class BmProjectCurveOnSurface(bmCmdsBuild.BmCmdsBuildBase):
+    """
+    Note that we can use any curve input (eg nurbsCurve, or projectCurve etc.)
+    However also note that we can only use a nurbsSurface input, because we'll be parenting transforms to it.
+
+    """
+    USER_DEPENDENCIES = [
+        ("curve_node", bpObjects.BpTypeFilter(basestring)),
+        ("surface", bpObjects.BpTypeFilter(basestring)),
+    ]
+
+    DEFAULT_DEPENDENCIES = [
+        ("curve_attr", bpObjects.BpTypeFilter(basestring), "worldSpace[0]"),
+        ("use_surface_local", bpObjects.BpTypeFilter(bool), False),
+        # TODO better filter eg bpTypedObjects.BP_FLOAT_ARRAY_FILTER
+        ("direction", bpObjects.BpTypeFilter((list, tuple)), (0,1,0)),
+        ("enable_curve_outputs", bpObjects.BpTypeFilter(bool), True),
+        # should we use the native maya command, or make nodes from scratch?
+        ("use_cmd", bpObjects.BpTypeFilter(bool), True)
+    ]
+
     def __init__(self, *args, **kwargs):
 
         # parse kwargs
-        name = self.parse_kwarg("name", kwargs, bpObjects.BpTypeFilter(basestring), dependency=False)
+        # name = self.parse_kwarg("name", kwargs, bpObjects.BpTypeFilter(basestring), dependency=False)
 
-        # note that we can use any curve input (eg nurbsCurve, or projectCurve etc.)
-        curve_node = self.parse_kwarg("curve_node", kwargs, bpObjects.BpTypeFilter(basestring), dependency=False)
-
-        curve_attr = self.parse_kwarg(
-            "curve_attr", kwargs, bpObjects.BpTypeFilter(basestring), dependency=False, default_value="worldSpace[0]"
-        )
-
-        # but also note that we can only use a nurbsSurface input
-        # because we'll be parenting transforms to it
-        surface = self.parse_kwarg("surface", kwargs, bpObjects.BpTypeFilter(basestring), dependency=False)
-
-        use_surface_local = self.parse_kwarg(
-            "use_surface_local", kwargs, bpObjects.BpTypeFilter(bool), dependency=False, default_value=False
-        )
-
-        # TODO use normal option
-
-        # TODO better filter eg bpTypedObjects.BP_FLOAT_ARRAY_FILTER
-        direction = self.parse_kwarg(
-            "direction", kwargs, bpObjects.BpTypeFilter((list, tuple)), dependency=False, default_value=(0,1,0)
-        )
-
-        enable_curve_outputs = self.parse_kwarg(
-            "enable_curve_outputs", kwargs, bpObjects.BpTypeFilter(bool), dependency=False, default_value=True
-        )
-
-        # enable_cfs_outputs = self.parse_kwarg(
-        #     "enable_cfs_outputs", kwargs, bpObjects.BpTypeFilter(bool), dependency=False, default_value=True
+        # # note that we can use any curve input (eg nurbsCurve, or projectCurve etc.)
+        # curve_node = self.parse_kwarg("curve_node", kwargs, bpObjects.BpTypeFilter(basestring), dependency=False)
+        #
+        # curve_attr = self.parse_kwarg(
+        #     "curve_attr", kwargs, bpObjects.BpTypeFilter(basestring), dependency=False, default_value="worldSpace[0]"
         # )
-
-        # should we use the native maya command, or make nodes from scratch?
-        use_cmd = self.parse_kwarg(
-            "use_cmd", kwargs, bpObjects.BpTypeFilter(bool), dependency=False, default_value=True
-        )
+        #
+        # # but also note that we can only use a nurbsSurface input
+        # # because we'll be parenting transforms to it
+        # surface = self.parse_kwarg("surface", kwargs, bpObjects.BpTypeFilter(basestring), dependency=False)
+        #
+        # use_surface_local = self.parse_kwarg(
+        #     "use_surface_local", kwargs, bpObjects.BpTypeFilter(bool), dependency=False, default_value=False
+        # )
+        #
+        # # TODO use normal option
+        #
+        # # TODO better filter eg bpTypedObjects.BP_FLOAT_ARRAY_FILTER
+        # direction = self.parse_kwarg(
+        #     "direction", kwargs, bpObjects.BpTypeFilter((list, tuple)), dependency=False, default_value=(0,1,0)
+        # )
+        #
+        # enable_curve_outputs = self.parse_kwarg(
+        #     "enable_curve_outputs", kwargs, bpObjects.BpTypeFilter(bool), dependency=False, default_value=True
+        # )
+        #
+        # # enable_cfs_outputs = self.parse_kwarg(
+        # #     "enable_cfs_outputs", kwargs, bpObjects.BpTypeFilter(bool), dependency=False, default_value=True
+        # # )
+        #
+        # # should we use the native maya command, or make nodes from scratch?
+        # use_cmd = self.parse_kwarg(
+        #     "use_cmd", kwargs, bpObjects.BpTypeFilter(bool), dependency=False, default_value=True
+        # )
 
         super(BmProjectCurveOnSurface, self).__init__(*args, **kwargs)
 
-        self.add_loose_dependency(name)
-        self.add_loose_dependency(curve_node)
-        self.add_loose_dependency(curve_attr)
-        self.add_loose_dependency(surface)
-        self.add_loose_dependency(use_surface_local)
-        self.add_loose_dependency(direction)
-        self.add_loose_dependency(enable_curve_outputs)
-        # self.add_loose_dependency(enable_cfs_outputs)
-        self.add_loose_dependency(use_cmd)
+        # self.add_loose_dependency(name)
+        # self.add_loose_dependency(curve_node)
+        # self.add_loose_dependency(curve_attr)
+        # self.add_loose_dependency(surface)
+        # self.add_loose_dependency(use_surface_local)
+        # self.add_loose_dependency(direction)
+        # self.add_loose_dependency(enable_curve_outputs)
+        # # self.add_loose_dependency(enable_cfs_outputs)
+        # self.add_loose_dependency(use_cmd)
 
         # outputs
         self._built = False
@@ -86,33 +107,33 @@ class BmProjectCurveOnSurface(bpObjects.BpValueDependant):
         self._output_shapes = []
         self._has_multiple_outputs = False
 
-    def name(self):
-        return self.get_loose_dependency("name")
+    # def name(self):
+    #     return self.get_loose_dependency("name")
 
     def curve_node(self):
-        return self.get_loose_dependency("curve_node")
+        return self.get_dependency("curve_node")
 
     def curve_attr(self):
-        return self.get_loose_dependency("curve_attr")
+        return self.get_dependency("curve_attr")
 
     def surface(self):
-        return self.get_loose_dependency("surface")
+        return self.get_dependency("surface")
 
     def use_surface_local(self):
-        return self.get_loose_dependency("use_surface_local")
+        return self.get_dependency("use_surface_local")
 
     def direction(self):
-        return self.get_loose_dependency("direction")
+        return self.get_dependency("direction")
 
     def enable_curve_outputs(self):
-        return self.get_loose_dependency("enable_curve_outputs")
+        return self.get_dependency("enable_curve_outputs")
 
     # called explicitly after refreshing outputs
     # def enable_cfs_outputs(self):
     #     return self.get_loose_dependency("enable_cfs_outputs")
 
     def use_cmd(self):
-        return self.get_loose_dependency("use_cmd")
+        return self.get_dependency("use_cmd")
 
     def get_surface_shape(self):
         res = cmds.listRelatives(self.surface().get(), type="nurbsSurface")
@@ -281,7 +302,10 @@ class BmProjectCurveOnSurface(bpObjects.BpValueDependant):
 
         # calling get attr on the first output seems to be the only way to prompt
         # the node into creating an output curve
-        _ = cmds.getAttr("{}.local[0]".format(var_node))
+        try:
+            _ = cmds.getAttr("{}.local[0]".format(var_node))
+        except:
+            pass
 
         # # subsequent calls fails to create additional curves where they would be created later
         # # calling dgdirty or refresh also fails

@@ -12,6 +12,39 @@ global proc shelf_shelfMan () {
         -manage 1
         -visible 1
         -preventOverride 0
+        -annotation "delete loaded src modules and remove from path" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "filepath = r\"D:\\Repos\\brenmy\\setup\\maya_del_src.py\"\nexec(open(fi..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "DEL" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "filepath = r\"D:\\Repos\\brenmy\\setup\\maya_del_src.py\"\nexec(open(filepath).read(), None)\n" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 35
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
         -annotation "add python sources to sys.path" 
         -enableBackground 0
         -backgroundColor 0 0 0 
@@ -32,7 +65,40 @@ global proc shelf_shelfMan () {
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "import sys\n\nsrc_dirs = [\n    r\"D:\\Repos\\brenmy\\python\"\n]\n\nfor src_dir in src_dirs:\n    if src_dir not in sys.path:\n        sys.path.append(src_dir)\n        print \"Src added: {}\".format(src_dir)\n" 
+        -command "filepath = r\"D:\\Repos\\brenmy\\setup\\maya_src.py\"\nexec(open(filepath).read(), None)\n" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 34
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "delete sources then re-source" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "filepath = r\"D:\\Repos\\brenmy\\setup\\maya_del_src.py\"\nexec(open(fi..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "RSRC" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "pythonFamily.png" 
+        -image1 "pythonFamily.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "filepath = r\"D:\\Repos\\brenmy\\setup\\maya_del_src.py\"\nexec(open(filepath).read(), None)\n\nfilepath = r\"D:\\Repos\\brenmy\\setup\\maya_src.py\"\nexec(open(filepath).read(), None)\n" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1

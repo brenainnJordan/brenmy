@@ -5,7 +5,6 @@ from maya import cmds
 import math
 
 from brenmy.geometry.nurbs import bmCurveOnSurface
-reload(bmCurveOnSurface)
 
 PLATE_SEPARATION_ATTR = "plateSeparation"
 DIVISION_SEPARATION_ATTR = "divisionSeparation"
@@ -35,13 +34,16 @@ def is_curve_on_surface(curve, return_nodes):
     if cmds.nodeType(curve) not in ["transform", "nurbsCurve"]:
         return False
 
-    con = cmds.listConnections("{}.create".format(curve), source=True, destination=False, type="curveVarGroup")
+    con = cmds.listConnections(
+        "{}.create".format(curve), source=True, destination=False, type="curveVarGroup", plugs=True
+    )
 
     if con:
         if return_nodes:
             # maya, just wtf...
-            surface, var_group = con[0].split("->")
-            return surface, var_group
+            surface, var_group_output = con[0].split("->")
+            var_group, attr = var_group_output.split(".")
+            return surface, var_group, attr
         else:
             return True
     else:
@@ -49,6 +51,24 @@ def is_curve_on_surface(curve, return_nodes):
 
 
 def create_birail_2(profile_1, profile_2, rail_1, rail_2, name, parent):
+    """
+
+from bmSandbox.nurbsSandbox import saucer_utils
+reload(saucer_utils)
+
+profile_1, profile_2, rail_1, rail_2 = cmds.ls(sl=True)
+
+name = "test"
+parent = "birail_GRP"
+
+saucer_utils.create_birail_2(
+    profile_1, profile_2,
+    rail_1, rail_2,
+    name, parent
+)
+
+
+    """
     birail = cmds.createNode("dpBirailSrf", name="{}_dpBirailSrf".format(name))
 
     for node, attr in [
@@ -59,10 +79,14 @@ def create_birail_2(profile_1, profile_2, rail_1, rail_2, name, parent):
     ]:
         cos_res = is_curve_on_surface(node, return_nodes=True)
 
+        if cos_res:
+            node = node.split("->")[-1]
+
         if cmds.nodeType(node) == "curveFromSurfaceCoS":
             curve_output = "{}.outputCurve".format(node)
 
         elif cos_res:
+            surface, var_node, var_attr = cos_res
 
             cmds.warning("Creating curveFromSurfaceCoS node: {}".format(node))
 
@@ -72,17 +96,16 @@ def create_birail_2(profile_1, profile_2, rail_1, rail_2, name, parent):
             cfs_node = cmds.createNode("curveFromSurfaceCoS", name="{}{}_curveFromSurfaceCoS".format(name, node))
 
             cmds.connectAttr(
-                "{}.worldSpace[0]".format(cos_res[0]),
+                "{}.worldSpace[0]".format(surface),
                 "{}.inputSurface".format(cfs_node)
             )
 
-            # TODO something if it has more than one output???
             cmds.connectAttr(
-                "{}.local[0]".format(cos_res[1]),
+                "{}.{}".format(var_node, var_attr),
                 "{}.curveOnSurface".format(cfs_node)
             )
 
-            curve_output = "{}"
+            curve_output = "{}.outputCurve".format(cfs_node)
         else:
             curve_output = "{}.worldSpace[0]".format(node)
 
@@ -97,6 +120,8 @@ def create_birail_2(profile_1, profile_2, rail_1, rail_2, name, parent):
     surface_shape = cmds.createNode("nurbsSurface", name="{}Shape".format(name), parent=surface_transform)
 
     cmds.connectAttr("{}.outputSurface".format(birail), "{}.create".format(surface_shape))
+
+    cmds.sets(surface_shape, edit=True, forceElement="initialShadingGroup")
 
     return surface_transform, surface_shape, birail
 
@@ -117,11 +142,13 @@ from bmSandbox.nurbsSandbox import saucer_utils
 reload(saucer_utils)
 
 control = "saucerCurveControl_loc"
-curve = "saucerPlateCurve1"
+# curve = "saucerPlateCurve1"
+curve = cmds.ls(sl=True)[0]
 surface = "saucer_surface"
+parent = "ring_offset_GRP"
 
 saucer_utils.project_saucer_plate_curves(
-    control, curve, surface,
+    control, curve, surface, parent
 )
 
     """
