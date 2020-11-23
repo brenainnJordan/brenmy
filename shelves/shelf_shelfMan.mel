@@ -6,9 +6,11 @@ global proc shelf_shelfMan () {
 
     shelfButton
         -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
         -enable 1
         -width 35
-        -height 35
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0
@@ -39,9 +41,11 @@ global proc shelf_shelfMan () {
     ;
     shelfButton
         -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
         -enable 1
         -width 35
-        -height 35
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0
@@ -65,15 +69,17 @@ global proc shelf_shelfMan () {
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "filepath = r\"D:\\Repos\\brenmy\\setup\\maya_src.py\"\nexec(open(filepath).read(), None)\n" 
+        -command "filepath = r\"D:\\Repos\\brenmy\\python\\brenmy\\setup\\maya_src.py\"\nexec(open(filepath).read(), None)\n" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1
     ;
     shelfButton
         -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
         -enable 1
-        -width 34
+        -width 35
         -height 34
         -manage 1
         -visible 1
@@ -105,9 +111,11 @@ global proc shelf_shelfMan () {
     ;
     shelfButton
         -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
         -enable 1
         -width 35
-        -height 35
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0
@@ -138,9 +146,11 @@ global proc shelf_shelfMan () {
     ;
     shelfButton
         -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
         -enable 1
         -width 35
-        -height 35
+        -height 34
         -manage 1
         -visible 1
         -preventOverride 0

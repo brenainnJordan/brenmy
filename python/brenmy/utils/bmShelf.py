@@ -6,6 +6,7 @@ from maya import mel
 from maya import cmds
 
 from brenmy.utils import bmEnv
+from brenmy.setup import maya_src
 
 MAYA_SHELF_DIR = os.path.join(
     bmEnv.MayaEnv.install_dir,
@@ -22,10 +23,10 @@ MAYA_PREFS_SHELF_DIR = os.path.join(
 CUSTOM_SHELF_NAMES = [
     "shelfMan",
     "brenmy",
+    "bmSkin",
 ]
 
-# TODO use inspect to get local path
-SRC_DIR = r"D:\Repos\brenmy"
+SRC_DIR = os.path.join(maya_src.REPO_DIR, "brenmy")
 
 REPO_SHELVES_DIR = os.path.join(
     SRC_DIR,
@@ -118,7 +119,7 @@ def export_shelves_to_repo():
 def load_shelf_from_repo(shelf_name):
 
     # delete if it already exists before loading
-    if cmds.shelfLayout(shelf_name, exists=True):
+    while cmds.shelfLayout(shelf_name, exists=True):
         print "Shelf exists, deleting... {}".format(shelf_name)
 
         mel.eval("deleteShelfTab {}".format(shelf_name))
@@ -136,9 +137,8 @@ def load_shelf_from_repo(shelf_name):
         return False
 
     mel_shelf_filepath = shelf_file.repo_filepath()
-    print mel_shelf_filepath
     mel_shelf_filepath = mel_shelf_filepath.replace("\\", "//")
-    print mel_shelf_filepath
+
     mel.eval('loadNewShelf "{}"'.format(mel_shelf_filepath))
 
     return True
