@@ -7,15 +7,7 @@ import os
 from maya import cmds
 from maya import mel
 
-REPO_DIR = r"D:\Repos"
-
 SRC_DIRS = [
-    os.path.join(REPO_DIR, r"brenpy\python"),
-    os.path.join(REPO_DIR, r"brenmy\python"),
-    os.path.join(REPO_DIR, r"brenmy\sandbox\python\scripts"),
-    os.path.join(REPO_DIR, r"brenfbxpy\python"),
-    os.path.join(REPO_DIR, r"brenfbxdccpy\python"),
-    os.path.join(REPO_DIR, r"brenrig\python"),
     r"D:\Dev\maya\numpy\numpy-1.13.1+mkl-cp27-none-win_amd64",
     r"D:\Dev\maya\fbx"
 ]
@@ -24,14 +16,36 @@ MEL_DIRS = [
     r"D:/Dev/sourced/comet"
 ]
 
+REPO_DIR = r"D:\Repos"
+
+REPO_SRC_DIRS = [
+    os.path.join(REPO_DIR, i) for i in [
+        r"brenpy\python",
+        r"brenmy\python",
+        r"brenmy\sandbox\python\scripts",
+        r"brenfbxpy\python",
+        r"brenfbxdccpy\python",
+        r"brenrig\python",
+    ]
+]
+
 
 def add_sources():
     """Add SRC_DIRS to sys.path
     """
-    for src_dir in SRC_DIRS:
+
+    for src_dir in SRC_DIRS + REPO_SRC_DIRS:
         if src_dir not in sys.path:
             sys.path.append(src_dir)
             print "Src added: {}".format(src_dir)
+
+    global BRENMY_SOURCES
+    BRENMY_SOURCES = [os.path.normpath(i) for i in SRC_DIRS]
+
+    global BRENMY_REPO_SOURCES
+    BRENMY_REPO_SOURCES = [os.path.normpath(i) for i in REPO_SRC_DIRS]
+
+    return True
 
 
 def instance_fbx_manager():

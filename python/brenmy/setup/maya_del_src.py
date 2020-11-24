@@ -4,19 +4,18 @@
 import sys
 import os
 
-REPO_DIR = r"D:\Repos"
+def get_repo_sources():
+    if "BRENMY_REPO_SOURCES" not in globals():
+        raise Exception("BRENMY_REPO_SOURCES global not found, cannot get repo sources")
 
-SRC_DIRS = [
-	os.path.join(REPO_DIR, r"brenpy\python"),
-    os.path.join(REPO_DIR, r"brenmy\python"),
-    os.path.join(REPO_DIR, r"brenfbxpy\python"),
-    os.path.join(REPO_DIR, r"brenfbxdccpy\python"),
-    os.path.join(REPO_DIR, r"brenrig\python"),
-]
+    global BRENMY_REPO_SOURCES
+    return BRENMY_REPO_SOURCES
+
 
 def is_src(filepath):
-    for src_dir in SRC_DIRS:
-        if filepath.startswith(src_dir):
+
+    for src_dir in get_repo_sources():
+        if os.path.commonprefix([src_dir, filepath]) == src_dir:
             return True
 
     return False
@@ -42,11 +41,13 @@ def delete_src_modules():
             continue
             # print "failed to get file: {}".format(module_name)
 
-# call
-delete_src_modules()
+def remove_sources():
+    for src_dir in get_repo_sources():
+        if src_dir in sys.path:
+            sys.path.remove(src_dir)
+            print "Src removed: {}".format(src_dir)
 
-# remove from src
-for src_dir in SRC_DIRS:
-    if src_dir in sys.path:
-        sys.path.remove(src_dir)
-        print "Src removed: {}".format(src_dir)
+
+if __name__ == "__main__":
+    delete_src_modules()
+    remove_sources()

@@ -24,6 +24,9 @@ CUSTOM_SHELF_NAMES = [
     "shelfMan",
     "brenmy",
     "bmSkin",
+    "bmJoints",
+    "bmPy",
+    "bmXform"
 ]
 
 SRC_DIR = os.path.join(maya_src.REPO_DIR, "brenmy")

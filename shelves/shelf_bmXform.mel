@@ -1,0 +1,141 @@
+global proc shelf_bmXform () {
+    global string $gBuffStr;
+    global string $gBuffStr0;
+    global string $gBuffStr1;
+
+
+    separator
+        -enable 1
+        -width 12
+        -height 35
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -style "shelf" 
+        -horizontal 0
+    ;
+    text
+        -enable 1
+        -width 50
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -label "align" 
+        -hyperlink 0
+        -wordWrap 0
+        -recomputeSize 0
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "align selected nodes to world matrix of first selected node" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "sl = cmds.ls(sl=True, type=\"transform\")\n\nif len(sl) < 2:\n    cmd..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "mtx" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 1 
+        -image "UVAlignMiddleU.png" 
+        -image1 "UVAlignMiddleU.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "sl = cmds.ls(sl=True, type=\"transform\")\n\nif len(sl) < 2:\n    cmds.error(\"Select 2 or more transforms to align\")\n\nmatrix = cmds.xform(sl[0], query=True, matrix=True, worldSpace=True)\n\nfor node in sl[1:]:\n    cmds.xform(node, matrix=matrix, worldSpace=True)\n" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "align selected nodes to world space rotation of first selected node" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "sl = cmds.ls(sl=True, type=\"transform\")\n\nif len(sl) < 2:\n    cmd..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "rot" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 1 
+        -image "UVAlignMiddleU.png" 
+        -image1 "UVAlignMiddleU.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "sl = cmds.ls(sl=True, type=\"transform\")\n\nif len(sl) < 2:\n    cmds.error(\"Select 2 or more transforms to align\")\n\nrot = cmds.xform(sl[0], query=True, rotation=True, worldSpace=True)\n\nfor node in sl[1:]:\n    cmds.xform(node, rotation=rot, worldSpace=True)\n" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 3
+        -flexibleWidthValue 32
+        -enable 1
+        -width 35
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "align selected nodes to world space translation of first selected node" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "sl = cmds.ls(sl=True, type=\"transform\")\n\nif len(sl) < 2:\n    cmd..." 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "pos" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 1 
+        -image "UVAlignMiddleU.png" 
+        -image1 "UVAlignMiddleU.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "sl = cmds.ls(sl=True, type=\"transform\")\n\nif len(sl) < 2:\n    cmds.error(\"Select 2 or more transforms to align\")\n\npos = cmds.xform(sl[0], query=True, translation=True, worldSpace=True)\n\nfor node in sl[1:]:\n    cmds.xform(node, translation=pos, worldSpace=True)\n" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+
+} 
